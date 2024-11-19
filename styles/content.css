@@ -1,0 +1,253 @@
+.emoji {
+	min-width: 50px;
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	text-align: center;
+}
+
+.emoji:first-child {
+	background: #ffe03b;
+	color: #5a4f13;
+	padding: 12px 0;
+	border-radius: 4px;
+	margin-right: -20px;
+	min-width: 120px;
+	box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.emoji:first-child .emoji-footer {
+	font-weight: 600;
+}
+
+.emoji-name {
+	font-weight: bold;
+	font-size: small;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	max-width: 120px;
+	overflow: hidden;
+}
+
+.emoji-img {
+	object-fit: contain;
+	width: 50px;
+	aspect-ratio: 1;
+}
+
+.emoji-footer {
+	font-weight: 500;
+	font-size: small;
+}
+
+.emoji-count {
+	font-weight: 600;
+	font-size: large;
+}
+
+.users {
+}
+
+.user {
+	min-width: 50px;
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	text-align: center;
+	min-width: 140px;
+	border-radius: 4px;
+	padding: 12px 0;
+	position: relative;
+	box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.user:nth-child(1) {
+	background: #ffe03b;
+	color: #5a4f13;
+	scale: 1;
+	z-index: 2;
+	margin-right: -12px;
+}
+
+.user:nth-child(2) {
+	background: #d5bf41;
+	color: #5a4f13;
+	scale: 0.9;
+	z-index: 1;
+	margin-right: -24px;
+}
+
+.user:nth-child(3) {
+	background: #aa9938;
+	color: #5a4f13;
+	scale: 0.8;
+	z-index: 0;
+}
+
+.user:first-child .user-footer {
+	font-weight: 600;
+}
+
+.user-name {
+	font-weight: bold;
+	font-size: small;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	max-width: 120px;
+	overflow: hidden;
+}
+
+.user-img-wrapper {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 120px;
+	height: 120px;
+	background: #ddd;
+	border-radius: 4px;
+}
+
+.user-img {
+	object-fit: contain;
+	width: 100%;
+	aspect-ratio: 1;
+}
+
+.user-footer {
+	font-weight: 500;
+	font-size: small;
+}
+
+.user-count {
+	font-weight: 600;
+	font-size: large;
+}
+
+.emojis {
+	position: relative;
+	margin: 0;
+	width: 100%;
+	margin: 0 -32px;
+}
+
+.emojis:after, .emojis:before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 32px;
+}
+
+.emojis:after {
+	right: 0;
+	background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+}
+
+.emojis:before {
+	left: 0;
+	background: linear-gradient(90deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+}
+
+.emojis-scroll-wrapper {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-items: center;
+	gap: 40px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: 0 32px;
+}
+
+.app {
+	font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 20px;
+	margin-bottom: 20px;
+}
+
+.app-title {
+	margin: 0;
+	font-size: large;
+	font-weight: 900 !important;
+}
+
+.app-subtitle {
+	margin-top: 28px;
+	margin-bottom: 16px;
+}
+
+.app-subtitle:first-child {
+	margin-top: 0;
+}
+
+.app-loaded-state {
+	width: 100%;
+}
+
+.app-empty-state {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.app-emoji-count>h1 {
+	display: inline-block;
+	font-size: 100px;
+	line-height: 100px;
+	margin: 0;
+}
+
+.app-description {
+	margin: 0;
+}
+
+.app-buttons {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.app-button {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.app-footer {
+	margin: 0;
+	font-size: small;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.app-loaded-state .app-footer {
+	margin-top: 20px;
+}
+
+.app-footer .app-footer-text {
+	margin: 4px;
+}
+
+.progress {
+	display: flex;
+	flex-direction: column;
+	min-width: 200px;
+}
+
+.progress-bar {
+	width: 100%;
+}
+
+.progress-title {
+	font-size: small;
+	text-align: left;
+}
