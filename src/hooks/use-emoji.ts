@@ -53,7 +53,7 @@ export function useEmoji() {
 
 			// Fetch the emoji list, reading from the cache if possible.
 			const updatedEmojis =
-				!forced && emojis
+				!forced && emojis && emojis.length > 0
 					? emojis
 					: await API.fetchEmojiList({ setPercentLoaded });
 			if (forced || !emojis) setEmojis(updatedEmojis);
@@ -63,7 +63,7 @@ export function useEmoji() {
 			);
 
 			// Fetch the emoji stats, reading from the cache if possible.
-			const updatedStats = !forced && stats ? stats : [];
+			const updatedStats = !forced && stats && stats.length > 0 ? stats : [];
 			try {
 				if (updatedStats.length === 0) {
 					setState(State.LoadingStats);
