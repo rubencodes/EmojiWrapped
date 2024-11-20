@@ -10,7 +10,7 @@ The **Emoji Wrapped** Chrome extension allows you to generate a report of your m
 
 ### Chrome Web Store
 
-Coming soon 🤞
+Install the extension from Chrome Web Store [here](https://chromewebstore.google.com/detail/emoji-wrapped/kebifpbmgkobfgeajkapfmianmfjbdih?authuser=1&hl=en).
 
 ### Manually
 
