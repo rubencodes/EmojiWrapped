@@ -8,6 +8,7 @@ import { State } from "../types/app-state";
 
 export const App = () => {
 	const {
+		year,
 		emojis,
 		stats,
 		users,
@@ -15,7 +16,8 @@ export const App = () => {
 		percentLoaded,
 		startTime,
 		endTime,
-		loadEmoji,
+		loadStats,
+		importStats,
 	} = useEmoji();
 	return html`
 		<div className="app">
@@ -25,17 +27,20 @@ export const App = () => {
 			html`<${EmptyState}
 				state=${state}
 				percentLoaded=${percentLoaded}
-				loadEmoji=${loadEmoji}
+				loadStats=${loadStats}
+				importStats=${importStats}
 			/>`}
 			${state === State.Error && html`<${ErrorState} />`}
 			${state === State.Loaded &&
 			html`<${LoadedState}
+				year=${year}
 				emojis=${emojis}
 				stats=${stats}
 				users=${users}
 				startTime=${startTime}
 				endTime=${endTime}
-				regenerateReport=${() => loadEmoji(true)}
+				reloadStats=${() => loadStats(true)}
+				importStats=${importStats}
 			/>`}
 		</div>
 	`;

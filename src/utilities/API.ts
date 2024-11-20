@@ -65,13 +65,14 @@ export class API {
 
 	// Recursively fetches the usage stats for a given emoji from the Slack API.
 	static async fetchEmojiUsage({
+		year,
 		emoji,
 		attempt = 0,
 	}: {
+		year: number;
 		emoji: string;
 		attempt?: number;
 	}): Promise<{ items: Item[]; count: number }> {
-		const yearToDateFormatted = `${new Date().getFullYear()}-01-01`;
 		try {
 			const {
 				items,
@@ -80,7 +81,11 @@ export class API {
 			} = (await this.#post(APIEndpoint.EmojiUsage, {
 				body: this.#createFormData({
 					token: this.#getApiToken() ?? "",
-					query: `hasmy::${emoji}: after:${yearToDateFormatted}`,
+					query: [
+						`hasmy::${emoji}:`,
+						`after:${year}-01-01`,
+						`before:${year + 1}-01-01`,
+					].join(" "),
 					module: "messages",
 					page: 1,
 					count: 1000,
@@ -123,6 +128,7 @@ export class API {
 			if (attempt < 3) {
 				await this.#sleep(5000 * (attempt + 1));
 				return this.fetchEmojiUsage({
+					year,
 					emoji,
 					attempt: attempt + 1,
 				});

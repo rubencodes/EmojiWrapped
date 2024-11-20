@@ -8,20 +8,27 @@ import { shuffle } from "../utilities/shuffle";
 import type { Emoji, Stat, User } from "../types/entity-types";
 
 export const LoadedState = ({
+	year,
 	emojis,
 	stats,
 	users,
 	startTime,
 	endTime,
-	regenerateReport,
+	reloadStats,
+	importStats,
 }: {
+	year: number;
 	emojis: Emoji[];
 	stats: Stat[];
 	users: User[];
 	startTime: number;
 	endTime: number;
-	regenerateReport: () => void;
+	reloadStats: () => void;
+	importStats: (event: InputEvent) => void;
 }) => {
+	const currentYear = new Date().getFullYear();
+	const title =
+		year === currentYear ? "This year" : `In ${year ?? currentYear}`;
 	const rarestCount = stats.slice(-1)[0]?.count ?? 1;
 	const rarestEmoji = shuffle(
 		stats.filter(({ count }) => {
@@ -49,21 +56,21 @@ export const LoadedState = ({
 	const emojiThisYear = stats.filter(({ createdAt = 0 }) => {
 		return new Date(createdAt).getFullYear() === new Date().getFullYear();
 	});
-	const onRegenerate = () => {
+	const onReloadStats = () => {
 		if (
 			confirm(
-				"Are you sure you want to regenerate your Emoji Wrapped report? You'll lose your previous report, and it may take a while to pull fresh data."
+				"Are you sure you want to reload your Emoji Wrapped report? You'll lose your previous report, and it may take a while to pull fresh data."
 			) === false
 		) {
 			return;
 		}
 
-		regenerateReport();
+		reloadStats();
 	};
 
 	return html`
 		<div className="app-loaded-state">
-			<h5 className="app-subtitle">This year, you used...</h5>
+			<h5 className="app-subtitle">${title}, you used...</h5>
 			<span className="app-emoji-count">
 				<h1>${stats.length}</h1>
 				<i>different Slack emoji!</i>
@@ -85,16 +92,19 @@ export const LoadedState = ({
 					Elapsed time: ${formatTimeDifference(startTime, endTime)}
 				</p>
 				<div className="app-buttons">
-					<${Button} onClick=${onRegenerate}> Regenerate <//>
+					<${Button} onClick=${onReloadStats}> Reload <//>
 					<${Button}
 						type=${ButtonType.Outline}
 						onClick=${() =>
 							downloadJSON(
-								{ emojis, stats, startTime, endTime },
+								{ emojis, stats, startTime, endTime, year },
 								"emoji-wrapped.json"
 							)}
 					>
 						Export JSON
+					<//>
+					<${Button} type=${ButtonType.Outline} onFileUpload=${importStats}>
+						Import JSON
 					<//>
 				</div>
 			</div>

@@ -1,5 +1,5 @@
 import { html } from "htm/preact";
-import { Button } from "./Button";
+import { Button, ButtonType } from "./Button";
 import { Loader } from "./Loader";
 import { ProgressBar } from "./ProgressBar";
 import { State } from "../types/app-state";
@@ -7,25 +7,36 @@ import { State } from "../types/app-state";
 export const EmptyState = ({
 	state,
 	percentLoaded,
-	loadEmoji,
+	loadStats,
+	importStats,
 }: {
 	state: State;
 	percentLoaded: number;
-	loadEmoji: (forced?: boolean) => void;
+	loadStats: (forced?: boolean) => void;
+	importStats: (event: InputEvent) => void;
 }) => {
 	const isLoading =
 		state === State.LoadingEmoji || state === State.LoadingStats;
 	return html`
 		<div className="app-empty-state">
 			<p className="app-description">View a report of your top used emoji.</p>
-			<${Button}
-				className="app-button"
-				onClick=${() => loadEmoji()}
-				disabled=${isLoading}
-			>
-				${isLoading ? "Loading" : "Generate"}
-				${isLoading && html`<${Loader} size="small" />`}
-			<//>
+			<div className="app-buttons">
+				<${Button}
+					className="app-button"
+					onClick=${() => loadStats()}
+					disabled=${isLoading}
+				>
+					${isLoading ? "Loading" : "Generate"}
+					${isLoading && html`<${Loader} size="small" />`}
+				<//>
+				<${Button}
+					className="app-button"
+					type=${ButtonType.Outline}
+					onFileUpload=${importStats}
+				>
+					Import JSON
+				<//>
+			</div>
 			<p className="app-footer">
 				${isLoading &&
 				html`<${ProgressBar}

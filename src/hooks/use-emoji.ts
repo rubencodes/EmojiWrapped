@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from "preact/hooks";
 import { useCachedState } from "./use-cached-state";
-import { CacheKey, CacheTypeMap } from "../utilities/Cache";
+import { CacheKey } from "../utilities/Cache";
 import { API } from "../utilities/API";
 import { State } from "../types/app-state";
 import type { Emoji, Stat } from "../types/entity-types";
 
 export function useEmoji() {
+	const [year, setYear] = useState(new Date().getFullYear());
 	const [percentLoaded, setPercentLoaded] = useState(0) as [
 		number,
 		(value: number) => void
@@ -43,7 +44,7 @@ export function useEmoji() {
 			.map(([username, emoji]) => ({ username, emoji }))
 			.sort((a, b) => b.emoji.length - a.emoji.length);
 	}, [stats]);
-	const loadEmoji = useCallback(
+	const loadStats = useCallback(
 		async (forced?: boolean) => {
 			// Get ready to load the emoji...
 			setPercentLoaded(0);
@@ -70,6 +71,7 @@ export function useEmoji() {
 					for (const emoji of nonAliasedEmoji) {
 						const index = nonAliasedEmoji.findIndex((e) => e === emoji);
 						const { count, items } = await API.fetchEmojiUsage({
+							year,
 							emoji: emoji.name,
 						});
 
@@ -97,8 +99,42 @@ export function useEmoji() {
 		},
 		[stats]
 	);
+	const importStats = useCallback((event: InputEvent) => {
+		const [file] = Array.from((event.target as HTMLInputElement).files);
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			const jsonData = e.target.result;
+			if (typeof jsonData !== "string") {
+				return;
+			}
+
+			try {
+				const { year, emojis, stats, startTime, endTime } = JSON.parse(
+					jsonData
+				) as {
+					year: number;
+					emojis: Emoji[];
+					stats: Stat[];
+					startTime: number;
+					endTime: number;
+				};
+
+				setYear(year);
+				setEmojis(emojis);
+				setStats(stats);
+				setStartTime(startTime);
+				setEndTime(endTime);
+				setState(State.Loaded);
+			} catch {
+				console.error("EW: Failed to parse uploaded report");
+				return;
+			}
+		};
+		reader.readAsText(file);
+	}, []);
 
 	return {
+		year,
 		emojis,
 		stats,
 		users,
@@ -106,6 +142,7 @@ export function useEmoji() {
 		percentLoaded,
 		startTime,
 		endTime,
-		loadEmoji,
+		loadStats,
+		importStats,
 	};
 }
