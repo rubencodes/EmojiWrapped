@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "preact/hooks";
 import { useCachedState } from "./use-cached-state";
 import { CacheKey } from "../utilities/Cache";
 import { API } from "../utilities/API";
+import { validateStatsJSON } from "../utilities/validate-stats-json";
 import { State } from "../types/app-state";
 import type { Emoji, Stat } from "../types/entity-types";
 
@@ -108,27 +109,15 @@ export function useEmoji() {
 				return;
 			}
 
-			try {
-				const { year, emojis, stats, startTime, endTime } = JSON.parse(
-					jsonData
-				) as {
-					year: number;
-					emojis: Emoji[];
-					stats: Stat[];
-					startTime: number;
-					endTime: number;
-				};
+			const json = validateStatsJSON(jsonData);
+			if (!json) return;
 
-				setYear(year);
-				setEmojis(emojis);
-				setStats(stats);
-				setStartTime(startTime);
-				setEndTime(endTime);
-				setState(State.Loaded);
-			} catch {
-				console.error("EW: Failed to parse uploaded report");
-				return;
-			}
+			setYear(json.year);
+			setEmojis(json.emojis);
+			setStats(json.stats);
+			setStartTime(json.startTime);
+			setEndTime(json.endTime);
+			setState(State.Loaded);
 		};
 		reader.readAsText(file);
 	}, []);
