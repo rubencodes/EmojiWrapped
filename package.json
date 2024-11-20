@@ -4,7 +4,7 @@
 	"description": "See your most used Slack emoji of the year!",
 	"main": "scripts/content.module.ts",
 	"scripts": {
-		"build": "npm i && npx tsc"
+		"build": "npm i && webpack"
 	},
 	"repository": {
 		"type": "git",
@@ -17,6 +17,11 @@
 	},
 	"homepage": "https://github.com/rubencodes/EmojiWrapped#readme",
 	"dependencies": {
-		"typescript": "5.6.3"
+		"htm": "3.1.1",
+		"preact": "10.24.3",
+		"ts-loader": "9.5.1",
+		"typescript": "5.6.3",
+		"webpack": "5.96.1",
+		"webpack-cli": "5.1.4"
 	}
 }
