@@ -14,6 +14,7 @@ export const App = () => {
 		users,
 		state,
 		percentLoaded,
+		eta,
 		startTime,
 		endTime,
 		loadStats,
@@ -27,6 +28,7 @@ export const App = () => {
 			html`<${EmptyState}
 				state=${state}
 				percentLoaded=${percentLoaded}
+				eta=${eta}
 				loadStats=${loadStats}
 				importStats=${importStats}
 			/>`}

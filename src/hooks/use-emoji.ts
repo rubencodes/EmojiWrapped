@@ -1,10 +1,36 @@
-import { useCallback, useMemo, useState } from "preact/hooks";
+import {
+	useCallback,
+	useMemo,
+	useState,
+	useEffect,
+	useRef,
+} from "preact/hooks";
 import { useCachedState } from "./use-cached-state";
 import { CacheKey } from "../utilities/Cache";
 import { API } from "../utilities/API";
 import { validateStatsJSON } from "../utilities/validate-stats-json";
 import { State } from "../types/app-state";
 import type { Emoji, Stat } from "../types/entity-types";
+
+function useETA(state: State, defaultValue: number) {
+	const [rate, setRate] = useState(defaultValue);
+	const calculateETA = useCallback(
+		(emojiRemaining: number): string | undefined => {
+			if (state !== State.LoadingStats) return undefined;
+
+			const eta = Math.round(emojiRemaining * rate);
+			const hours = Math.floor(eta / (60 * 60));
+			const minutes = Math.floor((eta % (60 * 60)) / 60);
+			const seconds = eta % 60;
+
+			if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+			if (minutes > 0) return `${minutes}m ${seconds}s`;
+			return `${seconds}s`;
+		},
+		[rate, state]
+	);
+	return [calculateETA, setRate] as const;
+}
 
 export function useEmoji() {
 	const [year, setYear] = useState(new Date().getFullYear());
@@ -16,6 +42,7 @@ export function useEmoji() {
 		State,
 		(value: State) => void
 	];
+	const [calculateETA, setRate] = useETA(state, 1);
 	const [emojis, setEmojis] = useCachedState(CacheKey.Emoji, [] as Emoji[]);
 	const [stats, setStats] = useCachedState(
 		CacheKey.Stats,
@@ -59,9 +86,6 @@ export function useEmoji() {
 					: await API.fetchEmojiList({ setPercentLoaded });
 			if (forced || !emojis) setEmojis(updatedEmojis);
 			setPercentLoaded(1);
-			const nonAliasedEmoji = updatedEmojis.filter(
-				({ alias_for }) => !alias_for
-			);
 
 			// Fetch the emoji stats, reading from the cache if possible.
 			const updatedStats = !forced && stats && stats.length > 0 ? stats : [];
@@ -69,22 +93,36 @@ export function useEmoji() {
 				if (updatedStats.length === 0) {
 					setState(State.LoadingStats);
 					setPercentLoaded(0);
-					for (const emoji of nonAliasedEmoji) {
-						const index = nonAliasedEmoji.findIndex((e) => e === emoji);
+					for (const emoji of updatedEmojis) {
+						const index = updatedEmojis.findIndex((e) => e === emoji);
 						const { count, items } = await API.fetchEmojiUsage({
 							year,
 							emoji: emoji.name,
 						});
 
-						setPercentLoaded((index + 1) / nonAliasedEmoji.length);
+						setPercentLoaded((index + 1) / updatedEmojis.length);
 						if (count > 0) {
-							updatedStats.push({
-								name: emoji.name,
-								url: emoji.url,
-								createdAt: (emoji.created ?? 0) * 1000,
-								items,
-								count,
-							});
+							// If the emoji has an alias then we need to find the original emoji
+							const originalEmojiIndex = updatedStats.findIndex(
+								(e) => emoji.alias_for && e.name === emoji.alias_for
+							);
+							if (originalEmojiIndex >= 0) {
+								updatedStats[originalEmojiIndex] = {
+									...updatedStats[originalEmojiIndex],
+									items: [...updatedStats[originalEmojiIndex].items, ...items],
+									count: updatedStats[originalEmojiIndex].count + count,
+								};
+							}
+							// Default case, just add the emoji stats to the list.
+							else {
+								updatedStats.push({
+									name: emoji.name,
+									url: emoji.url,
+									createdAt: (emoji.created ?? 0) * 1000,
+									items,
+									count,
+								});
+							}
 						}
 					}
 				}
@@ -121,6 +159,36 @@ export function useEmoji() {
 		};
 		reader.readAsText(file);
 	}, []);
+	const eta = calculateETA(emojis.length - percentLoaded * emojis.length);
+	const ref = useRef(new Set<number>());
+	useEffect(() => {
+		if (state !== State.LoadingStats) {
+			return setRate(1);
+		}
+
+		const percent = Math.floor(percentLoaded * 100);
+		if (percent === 0) {
+			return setRate(1);
+		}
+
+		// Approximate running every 1% of the way through the loading process.
+		// Due to the large numbers we won't ever hit a perfect 1% so we'll just
+		// approximate the increment.
+		const percentageSet = ref.current;
+		if (percentageSet.has(percent)) {
+			return;
+		} else {
+			percentageSet.add(percent);
+		}
+
+		const now = Date.now();
+		const secondsElapsed = (now - startTime) / 1000;
+		const rate = secondsElapsed / (percentLoaded * emojis.length);
+		setRate(
+			(currentRate) =>
+				(currentRate * (percent * 100) + rate) / (percent * 100 + 1)
+		);
+	}, [percentLoaded, startTime, state]);
 
 	return {
 		year,
@@ -131,6 +199,7 @@ export function useEmoji() {
 		percentLoaded,
 		startTime,
 		endTime,
+		eta,
 		loadStats,
 		importStats,
 	};

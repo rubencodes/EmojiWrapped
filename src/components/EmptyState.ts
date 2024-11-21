@@ -7,11 +7,13 @@ import { State } from "../types/app-state";
 export const EmptyState = ({
 	state,
 	percentLoaded,
+	eta,
 	loadStats,
 	importStats,
 }: {
 	state: State;
 	percentLoaded: number;
+	eta?: string;
 	loadStats: (forced?: boolean) => void;
 	importStats: (event: InputEvent) => void;
 }) => {
@@ -29,13 +31,14 @@ export const EmptyState = ({
 					${isLoading ? "Loading" : "Generate"}
 					${isLoading && html`<${Loader} size="small" />`}
 				<//>
-				<${Button}
+				${!isLoading &&
+				html`<${Button}
 					className="app-button"
 					type=${ButtonType.Outline}
 					onFileUpload=${importStats}
 				>
 					Import JSON
-				<//>
+				<//>`}
 			</div>
 			<p className="app-footer">
 				${isLoading &&
@@ -45,7 +48,10 @@ export const EmptyState = ({
 						: "(2/2) Loading stats..."}
 					percent=${percentLoaded}
 				/>`}
-				<i> This may take a while for workspaces with many emoji. </i>
+				<i>
+					This may take a while for workspaces with many emoji.
+					${eta ? html`<b> ETA: ${eta}</b>` : ""}
+				</i>
 			</p>
 		</div>
 	`;
