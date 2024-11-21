@@ -3,7 +3,7 @@ import { Emojis } from "./Emojis";
 import { Users } from "./Users";
 import { Button, ButtonType } from "./Button";
 import { downloadJSON } from "../utilities/download-json";
-import { formatTimeDifference } from "../utilities/format-time-difference";
+import { formatSeconds } from "../utilities/format-seconds";
 import { shuffle } from "../utilities/shuffle";
 import type { Emoji, Stat, User } from "../types/entity-types";
 
@@ -67,6 +67,7 @@ export const LoadedState = ({
 
 		reloadStats();
 	};
+	const elapsedSeconds = Math.floor(Math.abs(endTime - startTime) / 1000);
 
 	return html`
 		<div className="app-loaded-state">
@@ -88,8 +89,13 @@ export const LoadedState = ({
 			<h5 className="app-subtitle">These new emoji caught your 👀</h5>
 			<${Emojis} emojis=${emojiThisYear.slice(0, 5)} />
 			<div className="app-footer">
-				<p className="app-footer-text">
-					Elapsed time: ${formatTimeDifference(startTime, endTime)}
+				<p
+					className="app-footer-text"
+					title="${new Date(startTime).toLocaleString()} to ${new Date(
+						endTime
+					).toLocaleString()}"
+				>
+					Elapsed time: ${formatSeconds(elapsedSeconds)}
 				</p>
 				<div className="app-buttons">
 					<${Button} onClick=${onReloadStats}> Reload <//>

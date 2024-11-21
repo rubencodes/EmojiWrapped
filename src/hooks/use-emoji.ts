@@ -8,6 +8,7 @@ import {
 import { useCachedState } from "./use-cached-state";
 import { CacheKey } from "../utilities/Cache";
 import { API } from "../utilities/API";
+import { formatSeconds } from "../utilities/format-seconds";
 import { validateStatsJSON } from "../utilities/validate-stats-json";
 import { State } from "../types/app-state";
 import type { Emoji, Stat } from "../types/entity-types";
@@ -19,13 +20,7 @@ function useETA(state: State, defaultValue: number) {
 			if (state !== State.LoadingStats) return undefined;
 
 			const eta = Math.round(emojiRemaining * rate);
-			const hours = Math.floor(eta / (60 * 60));
-			const minutes = Math.floor((eta % (60 * 60)) / 60);
-			const seconds = eta % 60;
-
-			if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-			if (minutes > 0) return `${minutes}m ${seconds}s`;
-			return `${seconds}s`;
+			return formatSeconds(eta);
 		},
 		[rate, state]
 	);
