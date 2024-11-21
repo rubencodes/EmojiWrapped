@@ -4,7 +4,8 @@
 	"description": "See your most used Slack emoji of the year!",
 	"main": "scripts/content.module.ts",
 	"scripts": {
-		"build": "npm i && webpack"
+		"build": "npm i && webpack",
+		"archive": "zip -r Archive.zip images/ scripts styles manifest.json -x \"*.DS_Store\""
 	},
 	"repository": {
 		"type": "git",
