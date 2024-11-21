@@ -97,16 +97,38 @@ export function useEmoji() {
 
 						setPercentLoaded((index + 1) / updatedEmojis.length);
 						if (count > 0) {
-							// If the emoji has an alias then we need to find the original emoji
+							// Find any pre-existing emoji matching the name or alias.
 							const originalEmojiIndex = updatedStats.findIndex(
-								(e) => emoji.alias_for && e.name === emoji.alias_for
+								(e) =>
+									(emoji.alias_for && e.name === emoji.alias_for) ||
+									e.name === emoji.name
 							);
-							if (originalEmojiIndex >= 0) {
+							const originalEmoji =
+								originalEmojiIndex >= 0
+									? updatedStats[originalEmojiIndex]
+									: null;
+
+							// If the alias emoji is found then we need to update the original emoji.
+							if (originalEmoji) {
 								updatedStats[originalEmojiIndex] = {
-									...updatedStats[originalEmojiIndex],
-									items: [...updatedStats[originalEmojiIndex].items, ...items],
-									count: updatedStats[originalEmojiIndex].count + count,
+									...originalEmoji,
+									createdAt: Math.min(
+										originalEmoji.createdAt,
+										(emoji.created ?? 0) * 1000
+									),
+									items: [...originalEmoji.items, ...items],
+									count: originalEmoji.count + count,
 								};
+							}
+							// If the alias emoji isn't found then we need to add it to the list.
+							else if (emoji.alias_for) {
+								updatedStats.push({
+									name: emoji.alias_for,
+									url: emoji.url,
+									createdAt: (emoji.created ?? 0) * 1000,
+									items,
+									count,
+								});
 							}
 							// Default case, just add the emoji stats to the list.
 							else {
