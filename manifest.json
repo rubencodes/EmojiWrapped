@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Emoji Wrapped",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "See your most used Slack emoji of the year!",
 	"icons": {
 		"16": "images/icon-16.png",
