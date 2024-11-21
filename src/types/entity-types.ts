@@ -14,6 +14,8 @@ export interface Emoji extends JSONObject {
 	alias_for: string;
 }
 
+export type SearchResult = Pick<Emoji, "name"> & Pick<Stat, "items" | "count">;
+
 export interface Message extends JSONObject {
 	user: string;
 	username: string;

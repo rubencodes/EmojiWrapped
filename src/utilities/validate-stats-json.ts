@@ -1,18 +1,19 @@
-import type { Emoji, Stat } from "../types/entity-types";
+import type { Emoji, SearchResult, Stat } from "../types/entity-types";
 
 export function validateStatsJSON(jsonData: string): {
 	year: number;
 	emojis: Emoji[];
-	stats: Stat[];
+	searchResults: SearchResult[] | undefined;
 	startTime: number;
 	endTime: number;
 } | null {
 	try {
-		const { year, emojis, stats, startTime, endTime } = JSON.parse(
+		let { year, emojis, searchResults, stats, startTime, endTime } = JSON.parse(
 			jsonData
 		) as {
 			year?: number;
 			emojis?: Emoji[];
+			searchResults?: SearchResult[];
 			stats?: Stat[];
 			startTime?: number;
 			endTime?: number;
@@ -38,29 +39,36 @@ export function validateStatsJSON(jsonData: string): {
 			throw new Error("Invalid emoji data");
 		}
 
-		if (!Array.isArray(stats)) {
-			throw new Error("Invalid stats data");
+		if (!Array.isArray(searchResults)) {
+			if (!Array.isArray(stats)) {
+				throw new Error("Invalid sarch results data");
+			}
+
+			if (
+				stats.some(
+					({ name, items, count }) =>
+						typeof name !== "string" ||
+						!Array.isArray(items) ||
+						items.some(({ messages }) => !Array.isArray(messages)) ||
+						typeof count !== "number"
+				)
+			) {
+				throw new Error("Invalid legacy stat data");
+			}
+
+			searchResults = stats;
 		}
 
 		if (
-			stats.some(
-				({ name, url, createdAt, items, count }) =>
+			searchResults.some(
+				({ name, items, count }) =>
 					typeof name !== "string" ||
-					typeof url !== "string" ||
-					typeof createdAt !== "number" ||
 					!Array.isArray(items) ||
-					items.some(
-						({ messages }) =>
-							!Array.isArray(messages) ||
-							messages.some(
-								({ user, username }) =>
-									typeof user !== "string" || typeof username !== "string"
-							)
-					) ||
+					items.some(({ messages }) => !Array.isArray(messages)) ||
 					typeof count !== "number"
 			)
 		) {
-			throw new Error("Invalid stat data");
+			throw new Error("Invalid search result data");
 		}
 
 		if (typeof startTime !== "number") {
@@ -74,7 +82,7 @@ export function validateStatsJSON(jsonData: string): {
 		return {
 			year,
 			emojis,
-			stats,
+			searchResults,
 			startTime,
 			endTime,
 		};

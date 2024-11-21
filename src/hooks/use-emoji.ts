@@ -6,48 +6,103 @@ import {
 	useRef,
 } from "preact/hooks";
 import { useCachedState } from "./use-cached-state";
+import { useETA } from "./use-eta";
 import { CacheKey } from "../utilities/Cache";
 import { API } from "../utilities/API";
-import { formatSeconds } from "../utilities/format-seconds";
 import { validateStatsJSON } from "../utilities/validate-stats-json";
 import { State } from "../types/app-state";
-import type { Emoji, Stat } from "../types/entity-types";
-
-function useETA(state: State, defaultValue: number) {
-	const [rate, setRate] = useState(defaultValue);
-	const calculateETA = useCallback(
-		(emojiRemaining: number): string | undefined => {
-			if (state !== State.LoadingStats) return undefined;
-
-			const eta = Math.round(emojiRemaining * rate);
-			return formatSeconds(eta);
-		},
-		[rate, state]
-	);
-	return [calculateETA, setRate] as const;
-}
+import type { Emoji, SearchResult, Stat } from "../types/entity-types";
 
 export function useEmoji() {
-	const [year, setYear] = useState(new Date().getFullYear());
-	const [percentLoaded, setPercentLoaded] = useState(0) as [
-		number,
-		(value: number) => void
-	];
+	// The current application state.
 	const [state, setState] = useState<State>(State.Initial) as [
 		State,
 		(value: State) => void
 	];
-	const [calculateETA, setRate] = useETA(state, 1);
+
+	// Cached data from the network.
 	const [emojis, setEmojis] = useCachedState(CacheKey.Emoji, [] as Emoji[]);
-	const [stats, setStats] = useCachedState(
-		CacheKey.Stats,
-		[] as Stat[],
-		(value) => {
-			setState(value ? State.Loaded : State.Empty);
+	const [searchResults, setSearchResults] = useCachedState(
+		CacheKey.SearchResults,
+		[] as SearchResult[],
+		(cachedData) => {
+			setState(
+				cachedData && cachedData.length > 0 ? State.Loaded : State.Empty
+			);
 		}
 	);
-	const [startTime, setStartTime] = useCachedState(CacheKey.StartTime, 0);
-	const [endTime, setEndTime] = useCachedState(CacheKey.EndTime, 0);
+
+	// Compile stats from search results when emojis and search results are loaded.
+	const [stats, setStats] = useState([] as Stat[]);
+	useEffect(() => {
+		if (emojis.length === 0) return;
+		if (searchResults.length === 0) return;
+
+		// Compile stats
+		const stats = searchResults
+			.reduce((stats, { name, items, count }) => {
+				if (count === 0) {
+					return stats;
+				}
+
+				const emoji = emojis.find((e) => e.name === name);
+				if (!emoji) {
+					return stats;
+				}
+
+				// Find any pre-existing emoji matching the name or alias.
+				const originalEmojiIndex = stats.findIndex(
+					(e) =>
+						(emoji.alias_for && e.name === emoji.alias_for) ||
+						e.name === emoji.name
+				);
+				const originalEmoji =
+					originalEmojiIndex >= 0 ? stats[originalEmojiIndex] : null;
+
+				// If the alias emoji is found, update the original emoji.
+				if (originalEmoji) {
+					const updated = {
+						...originalEmoji,
+						createdAt: Math.min(
+							originalEmoji.createdAt,
+							(emoji.created ?? 0) * 1000
+						),
+						items: [...originalEmoji.items, ...items],
+						count: originalEmoji.count + count,
+					};
+					return [
+						...stats.slice(0, originalEmojiIndex),
+						updated,
+						...stats.slice(originalEmojiIndex + 1),
+					];
+				}
+
+				// If the alias emoji wasn't found, add it to the list.
+				if (emoji.alias_for) {
+					const newEmoji = {
+						name: emoji.alias_for,
+						url: emoji.url,
+						createdAt: (emoji.created ?? 0) * 1000,
+						items,
+						count,
+					};
+					return [...stats, newEmoji];
+				}
+
+				// Default case, just add the emoji stats to the list.
+				const newEmoji = {
+					name: emoji.name,
+					url: emoji.url,
+					createdAt: (emoji.created ?? 0) * 1000,
+					items,
+					count,
+				};
+				return [...stats, newEmoji];
+			}, [] as Stat[])
+			.sort((a, b) => b.count - a.count);
+		setStats(stats);
+		setState(State.Loaded);
+	}, [emojis, searchResults]);
 	const users: {
 		username: string;
 		emoji: string[];
@@ -67,6 +122,15 @@ export function useEmoji() {
 			.map(([username, emoji]) => ({ username, emoji }))
 			.sort((a, b) => b.emoji.length - a.emoji.length);
 	}, [stats]);
+
+	// Business logic for loading data from the network.
+	const [startTime, setStartTime] = useCachedState(CacheKey.StartTime, 0);
+	const [endTime, setEndTime] = useCachedState(CacheKey.EndTime, 0);
+	const [percentLoaded, setPercentLoaded] = useState(0) as [
+		number,
+		(value: number) => void
+	];
+	const [year, setYear] = useState(new Date().getFullYear());
 	const loadStats = useCallback(
 		async (forced?: boolean) => {
 			// Get ready to load the emoji...
@@ -79,13 +143,16 @@ export function useEmoji() {
 				!forced && emojis && emojis.length > 0
 					? emojis
 					: await API.fetchEmojiList({ setPercentLoaded });
-			if (forced || !emojis) setEmojis(updatedEmojis);
+			if (forced || !emojis || !emojis.length) setEmojis(updatedEmojis);
 			setPercentLoaded(1);
 
 			// Fetch the emoji stats, reading from the cache if possible.
-			const updatedStats = !forced && stats && stats.length > 0 ? stats : [];
+			const updatedSearchResults =
+				!forced && searchResults && searchResults.length > 0
+					? searchResults
+					: [];
 			try {
-				if (updatedStats.length === 0) {
+				if (updatedSearchResults.length === 0) {
 					setState(State.LoadingStats);
 					setPercentLoaded(0);
 					for (const emoji of updatedEmojis) {
@@ -94,67 +161,23 @@ export function useEmoji() {
 							year,
 							emoji: emoji.name,
 						});
-
+						updatedSearchResults.push({ name: emoji.name, count, items });
 						setPercentLoaded((index + 1) / updatedEmojis.length);
-						if (count > 0) {
-							// Find any pre-existing emoji matching the name or alias.
-							const originalEmojiIndex = updatedStats.findIndex(
-								(e) =>
-									(emoji.alias_for && e.name === emoji.alias_for) ||
-									e.name === emoji.name
-							);
-							const originalEmoji =
-								originalEmojiIndex >= 0
-									? updatedStats[originalEmojiIndex]
-									: null;
-
-							// If the alias emoji is found then we need to update the original emoji.
-							if (originalEmoji) {
-								updatedStats[originalEmojiIndex] = {
-									...originalEmoji,
-									createdAt: Math.min(
-										originalEmoji.createdAt,
-										(emoji.created ?? 0) * 1000
-									),
-									items: [...originalEmoji.items, ...items],
-									count: originalEmoji.count + count,
-								};
-							}
-							// If the alias emoji isn't found then we need to add it to the list.
-							else if (emoji.alias_for) {
-								updatedStats.push({
-									name: emoji.alias_for,
-									url: emoji.url,
-									createdAt: (emoji.created ?? 0) * 1000,
-									items,
-									count,
-								});
-							}
-							// Default case, just add the emoji stats to the list.
-							else {
-								updatedStats.push({
-									name: emoji.name,
-									url: emoji.url,
-									createdAt: (emoji.created ?? 0) * 1000,
-									items,
-									count,
-								});
-							}
-						}
 					}
 				}
 			} catch (error) {
-				console.error("EW: Failed to load all stats", error);
+				console.error("EW: Failed to load all search results", error);
 				setState(State.Error);
 			} finally {
 				setPercentLoaded(1);
-				setStats(updatedStats.sort((a, b) => b.count - a.count));
+				setSearchResults(updatedSearchResults);
 				setEndTime(Date.now());
-				if (state !== State.Error) setState(State.Loaded);
 			}
 		},
-		[stats]
+		[emojis, searchResults]
 	);
+
+	// Import stats from a JSON file.
 	const importStats = useCallback((event: InputEvent) => {
 		const [file] = Array.from((event.target as HTMLInputElement).files);
 		const reader = new FileReader();
@@ -169,47 +192,26 @@ export function useEmoji() {
 
 			setYear(json.year);
 			setEmojis(json.emojis);
-			setStats(json.stats);
+			setSearchResults(json.searchResults);
 			setStartTime(json.startTime);
 			setEndTime(json.endTime);
 			setState(State.Loaded);
 		};
 		reader.readAsText(file);
 	}, []);
-	const eta = calculateETA(emojis.length - percentLoaded * emojis.length);
-	const ref = useRef(new Set<number>());
-	useEffect(() => {
-		if (state !== State.LoadingStats) {
-			return setRate(1);
-		}
 
-		const percent = Math.floor(percentLoaded * 100);
-		if (percent === 0) {
-			return setRate(1);
-		}
-
-		// Approximate running every 1% of the way through the loading process.
-		// Due to the large numbers we won't ever hit a perfect 1% so we'll just
-		// approximate the increment.
-		const percentageSet = ref.current;
-		if (percentageSet.has(percent)) {
-			return;
-		} else {
-			percentageSet.add(percent);
-		}
-
-		const now = Date.now();
-		const secondsElapsed = (now - startTime) / 1000;
-		const rate = secondsElapsed / (percentLoaded * emojis.length);
-		setRate(
-			(currentRate) =>
-				(currentRate * (percent * 100) + rate) / (percent * 100 + 1)
-		);
-	}, [percentLoaded, startTime, state]);
+	// Approximate the time remaining to load the data.
+	const eta = useETA({
+		state,
+		emojiCount: emojis.length,
+		startTime,
+		percentLoaded,
+	});
 
 	return {
 		year,
 		emojis,
+		searchResults,
 		stats,
 		users,
 		state,
